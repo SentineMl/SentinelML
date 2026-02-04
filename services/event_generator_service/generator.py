@@ -20,7 +20,7 @@ def gen_normal_event():
     user_id = random.choice(USERS)
     amount=round(random.uniform(5,300),2)
     country = random.choice(COUNTRY1)
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.datetime.now(timezone.utc).isoformat()
     merchant= random.choice(MERCHANTS) 
     currency=random.choice(["USD","EUR"])
     return({
