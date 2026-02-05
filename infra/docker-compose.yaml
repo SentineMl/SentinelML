@@ -3,10 +3,7 @@ version: '3.8'
 services:
   kafka1:
     image: confluentinc/cp-kafka:7.8.6
-    container_name: kafka1
-    ports:
-      - "9092:9092"
-      - "9093:9093"
+    container_name: kafka
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
@@ -31,9 +28,6 @@ services:
   kafka2:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka2
-    ports:
-      - "9094:9092"
-      - "9095:9093"
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
@@ -56,9 +50,6 @@ services:
   kafka3:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka3
-    ports:
-      - "9096:9092"
-      - "9097:9093"
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
