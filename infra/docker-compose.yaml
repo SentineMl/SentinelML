@@ -4,10 +4,14 @@ services:
   kafka1:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka1
+    ports:
+      - "9092:9092"
+      - "9093:9093"
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
       KAFKA_NODE_ID: '1'
+    
 
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9093,2@kafka2:9093,3@kafka3:9093"   #controllers communicate on port 9093host hwa kafka w
@@ -22,9 +26,14 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/kraft-combined-logs
     volumes:
       - kafka1_kraft:/var/lib/kafka/data
+    networks:
+      - SentinelNetwork
   kafka2:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka2
+    ports:
+      - "9094:9092"
+      - "9095:9093"
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
@@ -42,9 +51,14 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/kraft-combined-logs
     volumes:
       - kafka2_kraft:/var/lib/kafka/data
+    networks:
+      - SentinelNetwork
   kafka3:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka3
+    ports:
+      - "9096:9092"
+      - "9097:9093"
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
@@ -63,9 +77,14 @@ services:
       KAFKA_LOG_DIRS: /var/lib/kafka/kraft-combined-logs
     volumes:
       - kafka3_kraft:/var/lib/kafka/data
+    networks:
+      - SentinelNetwork
     
 
 volumes:
   kafka1_kraft:
   kafka2_kraft:
   kafka3_kraft:
+networks:
+  SentinelNetwork:
+    driver: bridge
