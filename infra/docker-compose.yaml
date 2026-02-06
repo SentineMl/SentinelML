@@ -3,7 +3,7 @@ version: '3.8'
 services:
   kafka1:
     image: confluentinc/cp-kafka:7.8.6
-    container_name: kafka
+    container_name: kafka1
     environment:
       KAFKA_KRAFT_MODE: 'true'
       CLUSTER_ID: 'kafka'
@@ -25,6 +25,11 @@ services:
       - kafka1_kraft:/var/lib/kafka/data
     networks:
       - SentinelNetwork
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
   kafka2:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka2
@@ -47,6 +52,11 @@ services:
       - kafka2_kraft:/var/lib/kafka/data
     networks:
       - SentinelNetwork
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
   kafka3:
     image: confluentinc/cp-kafka:7.8.6
     container_name: kafka3
@@ -70,7 +80,33 @@ services:
       - kafka3_kraft:/var/lib/kafka/data
     networks:
       - SentinelNetwork
-    
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  kafka-init:
+    image: confluentinc/cp-kafka:7.8.6
+    container_name: kafka-init
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+    networks:
+      - SentinelNetwork
+    command:
+      - /bin/bash
+      - -lc
+      - |
+          echo "Creating topics..."
+          kafka-topics --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --create --if-not-exists --topic raw_events --partitions 3 --replication-factor 3
+          kafka-topics --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --create --if-not-exists --topic predictions --partitions 3 --replication-factor 3
+          echo "Topics now:"
+          kafka-topics --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --list
+    restart: "no"
 
 volumes:
   kafka1_kraft:
