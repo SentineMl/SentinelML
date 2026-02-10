@@ -2,10 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY generator.py .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Environment variables with defaults
-ENV SLEEP_SECONDS=1.0
-ENV ANOMALY_RATE=0.05
+COPY config.py schema.py generator.py ./
+RUN mkdir -p /app/data
+COPY data/ /app/data/
+
+
+
 
 CMD ["python", "-u", "generator.py"]

@@ -1,63 +1,95 @@
-import json 
-import os 
-import random 
-import uuid
-import time 
-import datetime
-from datetime import timezone 
+from pathlib import Path
+from config import settings
+import pandas as pd
+from confluent_kafka import Producer
+from schema import FeaturesEvent
+from datetime import datetime, timezone
+import time
+from typing import Iterator
 
-# Config via env vars (good practice)
-SLEEP_SECONDS = float(os.getenv("SLEEP_SECONDS", "1.0"))
-ANOMALY_RATE = float(os.getenv("ANOMALY_RATE", "0.05"))  # 5% anomalies by default
+class EventGenerator:
+    def __init__(self, dataset_path:str) -> None:
+        self.producer: Producer = None
+        self.dataset_path = Path(dataset_path)
+        self.df: pd.DataFrame = None
+        self._load_dataset()
 
-
-MERCHANTS=["Amazon","Walmart","Target","BestBuy","Ebay","Costco","HomeDepot","Nike","Adidas","Starbucks","McDonalds"]
-COUNTRY1=["US","UK","FR","DE","CN","CA","AU","TN"]
-COUNTRY2=["IN","JP","BR","NG"]
-USERS=[f"user_{i:04d}" for i in range(1, 201)]
-def gen_normal_event():
-    transaction_id= f"{uuid.uuid4().hex}"
-    user_id = random.choice(USERS)
-    amount=round(random.uniform(5,300),2)
-    country = random.choice(COUNTRY1)
-    timestamp = datetime.datetime.now(timezone.utc).isoformat()
-    merchant= random.choice(MERCHANTS) 
-    currency=random.choice(["USD","EUR"])
-    return({
-        "event_type":"transaction",
-        "transaction_id":transaction_id,
-        "user_id":user_id,
-        "amount":amount,
-        "country":country,
-        "timestamp":timestamp,
-        "merchant":merchant,
-        "currency":currency,
-        "label":0,
-        })
-def gen_anomaly_event():
-    anomaly_type = random.choice(["high_amount", "country_change", "burst_like"])
-    base=gen_normal_event()
-    base["label"]=1
-    base["anomaly_type"] = anomaly_type
-
-    if anomaly_type=="high_amount":
-        base["amount"]=round(random.uniform(1000,5000),2)
-    elif anomaly_type=="country_change":
-        base["country"]=random.choice(COUNTRY2)
-    elif anomaly_type=="burst_like":
-        base["burst_hint"]=True
-        base["amount"]=round(random.uniform(200,1000),2)
-    return base
-
-def main():
-    random.seed()
     
-    while True:
-        is_anomaly = random.random()<ANOMALY_RATE
-        event = gen_anomaly_event() if is_anomaly else gen_normal_event()
+    def _load_dataset(self):
+        if not self.dataset_path.exists():
+            raise FileNotFoundError(f"Dataset not found at {self.dataset_path}")
+        if self.dataset_path.suffix == ".csv":
+            self.df = pd.read_csv(self.dataset_path)
+        elif self.dataset_path.suffix == ".json":
+            self.df = pd.read_json(self.dataset_path)
+        elif self.dataset_path.suffix == ".parquet":
+            self.df = pd.read_parquet(self.dataset_path)
+        else:
+            raise ValueError(f"Unsupported file format: {self.dataset_path.suffix}")
+        
 
-        print(json.dumps(event))
-        time.sleep(SLEEP_SECONDS)
+    def connect(self) -> None:
+        config = {
+        "bootstrap.servers": settings.kafka_bootstrap_servers,
+        }
+        self.producer = Producer(config)
+        print(f"Connected to Kafka at {settings.kafka_bootstrap_servers}")
 
-if __name__=="__main__":
-    main()
+
+    def get_events(self) -> Iterator [FeaturesEvent]:
+        row_index = 0
+        total_rows = len(self.df)
+        while True:
+            row = self.df.iloc[row_index]
+            features=row.to_dict()
+            features.pop('timestamp', None)
+            event = FeaturesEvent(
+                timestamp=datetime.now(timezone.utc),
+                features=features
+            )
+            yield event
+            row_index = (row_index + 1) % total_rows
+
+    def produce_event(self,event: FeaturesEvent) -> None:
+        if not self.producer:
+            raise RuntimeError("Producer not connected. Call connect() first.")
+        try :
+            message = model_dump_json(event).encode("utf-8")
+            self.producer.produce(
+                topic=settings.kafka_features_topic,
+                value=message,
+            )
+            self.producer.flush() #force sending the message immediately
+            print(f"✓ Sent event at {event.timestamp} | Features: {len(event.features)}")
+        
+        
+        except Exception as e:
+            print(f"Error producing event: {e}")
+    
+
+
+    def close(self) -> None:
+        if self.producer:
+            self.producer.flush()  
+            print("Kafka producer closed")
+
+
+
+    def run(self) -> None:
+        print(f"Starting event generator(interval: {settings.generation_interval}s)")
+        print(f"Publishing to topic: {settings.kafka_features_topic}")
+        try:
+            for event in self.get_events():
+                self.produce_event(event)
+                time.sleep(settings.generation_interval)
+        except KeyboardInterrupt:
+            print("Event generator stopped by user.")
+        finally:
+            self.close()
+
+if __name__ == "__main__":
+    dataset_path = settings.dataset_path if hasattr(settings, 'dataset_path') else "data/transactions.csv"
+        
+    generator = EventGenerator(dataset_path)  # 1. Load dataset
+    generator.connect()                       # 2. Connect to Kafka
+    generator.run()                           # 3. Start sending events
