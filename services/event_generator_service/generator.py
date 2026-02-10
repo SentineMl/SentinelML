@@ -54,7 +54,7 @@ class EventGenerator:
         if not self.producer:
             raise RuntimeError("Producer not connected. Call connect() first.")
         try :
-            message = model_dump_json(event).encode("utf-8")
+            message = event.model_dump_json().encode("utf-8")
             self.producer.produce(
                 topic=settings.kafka_features_topic,
                 value=message,
