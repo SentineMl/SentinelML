@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from inference_service.consumer import FeatureConsumer
-from inference_service.producer import PredictionProducer
-from inference_service.model import DummyModel
+from consumer import FeatureConsumer
+from producer import PredictionProducer
+from model import DummyModel
 
 
 def main() -> None:

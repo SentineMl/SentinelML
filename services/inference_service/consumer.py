@@ -5,8 +5,8 @@ from typing import Optional
 
 from confluent_kafka import Consumer
 
-from inference_service.config import settings
-from inference_service.schema import featuresEvent
+from config import settings
+from schema import FeaturesEvent
 
 
 class FeatureConsumer:
@@ -44,7 +44,7 @@ class FeatureConsumer:
 
             try:
                 value = json.loads(msg.value().decode("utf-8"))
-                event = featuresEvent(**value)
+                event = FeaturesEvent(**value)
                 yield event
             except Exception as e:
                 print(f"Error processing message: {e}")

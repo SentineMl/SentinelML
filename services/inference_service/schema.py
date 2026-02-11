@@ -19,8 +19,8 @@ class PredictionEvent(BaseModel):
     Message produced by inference-service to Kafka topic: `predictions`.
     """
 
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.timezone.utc),
+    timestamp: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
         description="Prediction timestamp (UTC)."
     )
     anomaly_score: float = Field(
