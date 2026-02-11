@@ -147,7 +147,7 @@ services:
       KAFKA_GROUP_ID: "inference-service"
       KAFKA_FEATURES_TOPIC: "features"
       KAFKA_PREDICTIONS_TOPIC: "predictions"
-      KAFKA_AUTO_OFFSET_RESET: "latest"
+      KAFKA_AUTO_OFFSET_RESET: "earliest"
     networks:
       - SentinelNetwork
     restart: unless-stopped
