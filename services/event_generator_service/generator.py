@@ -12,7 +12,10 @@ class EventGenerator:
         self.producer: Producer = None
         self.dataset_path = Path(dataset_path)
         self.df: pd.DataFrame = None
+        self.offset_file = Path(settings.offset_file)
+        self.current_offset = 0
         self._load_dataset()
+        self._load_offset()
 
     
     def _load_dataset(self):
@@ -26,7 +29,28 @@ class EventGenerator:
             self.df = pd.read_parquet(self.dataset_path)
         else:
             raise ValueError(f"Unsupported file format: {self.dataset_path.suffix}")
-        
+    
+    def _load_offset(self):
+        """Load the last saved offset from file"""
+        if self.offset_file.exists():
+            try:
+                with open(self.offset_file, 'r') as f:
+                    self.current_offset = int(f.read().strip())
+                print(f"Resuming from saved offset: {self.current_offset}")
+            except Exception as e:
+                print(f"Could not load offset, starting from 0: {e}")
+                self.current_offset = 0
+        else:
+            print("No saved offset found, starting from 0")
+            self.current_offset = 0
+    
+    def _save_offset(self):
+        """Save the current offset to file"""
+        try:
+            with open(self.offset_file, 'w') as f:
+                f.write(str(self.current_offset))
+        except Exception as e:
+            print(f"Error saving offset: {e}")
 
     def connect(self) -> None:
         config = {
@@ -37,18 +61,24 @@ class EventGenerator:
 
 
     def get_events(self) -> Iterator [FeaturesEvent]:
-        row_index = 0
         total_rows = len(self.df)
+        
+        # Validate offset
+        if self.current_offset >= total_rows:
+            print(f"Warning: Saved offset ({self.current_offset}) exceeds total rows ({total_rows}). Resetting to 0.")
+            self.current_offset = 0
+        
         while True:
-            row = self.df.iloc[row_index]
+            row = self.df.iloc[self.current_offset]
             features=row.to_dict()
-            features.pop('timestamp', None)
             event = FeaturesEvent(
-                timestamp=datetime.now(timezone.utc),
                 features=features
             )
             yield event
-            row_index = (row_index + 1) % total_rows
+            self.current_offset = (self.current_offset + 1) % total_rows
+            # Save offset every 10 events to avoid excessive I/O
+            if self.current_offset % 10 == 0:
+                self._save_offset()
 
     def produce_event(self,event: FeaturesEvent) -> None:
         if not self.producer:
@@ -60,7 +90,7 @@ class EventGenerator:
                 value=message,
             )
             self.producer.flush() #force sending the message immediately
-            print(f"✓ Sent event at {event.timestamp} | Features: {len(event.features)}")
+            print(f"✓ Sent event | Features: {len(event.features)}")
         
         
         except Exception as e:
@@ -72,6 +102,9 @@ class EventGenerator:
         if self.producer:
             self.producer.flush()  
             print("Kafka producer closed")
+        # Save the final offset before closing
+        self._save_offset()
+        print(f"Saved offset: {self.current_offset}")
 
 
 
