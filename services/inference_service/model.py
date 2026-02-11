@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from typing import Dict
 
-from inference_service.schema import PredictionEvent
+from schema import PredictionEvent
 
 
 class DummyModel:

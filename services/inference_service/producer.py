@@ -5,8 +5,8 @@ from typing import Optional
 
 from confluent_kafka import Producer
 
-from inference_service.config import settings
-from inference_service.schema import PredictionEvent
+from config import settings
+from schema import PredictionEvent
 
 
 class PredictionProducer:
