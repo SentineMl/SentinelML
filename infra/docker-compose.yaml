@@ -108,7 +108,7 @@ services:
           echo "Topics now:"
           kafka-topics --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --list
     restart: "no"
-  process-data:
+  process_data:
     build:
       context: ../services/data_process_service
     container_name: process-data
