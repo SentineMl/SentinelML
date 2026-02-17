@@ -28,3 +28,7 @@ Thumbs.db
 
 # Project specific
 flow.jpeg
+
+
+*.crdownload
+Unconfirmed*
