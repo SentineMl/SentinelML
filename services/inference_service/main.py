@@ -19,6 +19,7 @@ def main() -> None:
 
         print("Starting inference service...")
         for feature_event in consumer.consume():
+            print(f"Received feature event: {feature_event}")
             # Run inference
             prediction = model.predict(
                 features=feature_event.features,

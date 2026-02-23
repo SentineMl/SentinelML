@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict
+from typing import Dict, Optional
 from pydantic import BaseModel, Field
 
 class FeaturesEvent(BaseModel):
@@ -7,9 +7,8 @@ class FeaturesEvent(BaseModel):
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
         description="Event timestamp (UTC)."
     )
-    features: Dict[str, float] = Field(
-        ...,
-        min_length=1,
+    features: Optional[Dict[str, float]] = Field(
+        default=None,
         description="Flat numeric feature vector used by the model."
     )
 

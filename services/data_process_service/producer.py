@@ -11,11 +11,13 @@ def delivery_report(err, msg):
     else:
         print(f"Delivered to {msg.topic()}[{msg.partition()}]@{msg.offset()}")
 
-def send_json(producer, topic, payload):
+def send_json(producer, topic, payload, key=None):
     producer.produce(
         topic=topic,
         value=json.dumps(payload).encode(),
+        key=key,
         callback=delivery_report
+    
     )
     producer.poll(0)
 
