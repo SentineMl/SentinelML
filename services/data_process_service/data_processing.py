@@ -2,7 +2,7 @@
 # Purpose: take ONE raw transaction event (dict) and return a processed + ML-ready feature dict
 
 from __future__ import annotations
-
+import ast 
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -119,7 +119,26 @@ def _flatten_velocity(v: Any) -> Dict[str, Optional[float]]:
         "velocity_max_single_amount_1h": _to_float(v.get("max_single_amount")),
     }
 
+def _unwrap_features(raw: Dict[str, Any]) -> Dict[str, Any]:
+    # raw can be {"features": {...}} or already flat
+    feats = raw.get("features")
+    return feats if isinstance(feats, dict) else raw
 
+
+def _parse_velocity(v: Any) -> Any:
+    # v may be dict OR a string that looks like a dict
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            # your velocity is like "{'num_transactions': 1197, ...}" (single quotes)
+            return ast.literal_eval(s)
+        except Exception:
+            return None
+    return None
 
 @dataclass(frozen=True)
 class ProcessingConfig:
@@ -129,6 +148,8 @@ class ProcessingConfig:
 
 def process_event(raw: Dict[str, Any], cfg: ProcessingConfig = ProcessingConfig()) -> Dict[str, Any]:
     
+    raw = _unwrap_features(raw)
+
     transaction_id = _to_str(raw.get("transaction_id"))
     customer_id = _to_str(raw.get("customer_id"))
 
@@ -165,8 +186,8 @@ def process_event(raw: Dict[str, Any], cfg: ProcessingConfig = ProcessingConfig(
     channel = _norm_lower(raw.get("channel"))
     distance_from_home = _bool_to_int(raw.get("distance_from_home"))
 
-
-    velocity = _flatten_velocity(raw.get("velocity_last_hour"))
+    velocity_dict = _parse_velocity(raw.get("velocity_last_hour"))  
+    velocity = _flatten_velocity(velocity_dict)
 
     card_number = _to_str(raw.get("card_number"))
     device_fingerprint = _to_str(raw.get("device_fingerprint"))
