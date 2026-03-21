@@ -2,3 +2,5 @@ confluent-kafka==2.3.0    # Kafka client library
 pydantic==2.5.0           # Data validation
 pydantic-settings==2.1.0  # Settings management
 pandas==2.1.4             # Dataset manipulation
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
