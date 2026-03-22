@@ -1,6 +1,8 @@
 # services/process-data/main.py
 import json
 import os
+from datetime import datetime, timezone
+
 
 
 from consumer import create_consumer
@@ -46,7 +48,14 @@ def main():
                 continue
 
             key = features.get("customer_id") or features.get("transaction_id")
-            send_json(producer, OUT_TOPIC, features, key=key)
+
+            event = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "features": features
+            }
+
+            print("SENDING TO FEATURES TOPIC:", event)
+            send_json(producer, OUT_TOPIC, event, key=key)
 
         
 
