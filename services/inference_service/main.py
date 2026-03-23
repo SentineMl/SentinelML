@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from consumer import FeatureConsumer
 from producer import PredictionProducer
-from model import DummyModel
+from model import IsolationForestModel
 
 
 def main() -> None:
@@ -11,7 +11,7 @@ def main() -> None:
     """
     consumer = FeatureConsumer()
     producer = PredictionProducer()
-    model = DummyModel()
+    model = IsolationForestModel()
 
     try:
         consumer.connect()
@@ -19,6 +19,7 @@ def main() -> None:
 
         print("Starting inference service...")
         for feature_event in consumer.consume():
+            print(f"Received feature event: {feature_event}")
             # Run inference
             prediction = model.predict(
                 features=feature_event.features,
