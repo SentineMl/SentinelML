@@ -32,3 +32,10 @@ flow.jpeg
 
 *.crdownload
 Unconfirmed*
+
+test.py
+
+artifacts/*.json
+artifacts/*.joblib
+
+services/inference_service/artifacts/

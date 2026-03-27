@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BASE_DIR = Path(__file__).resolve().parent
 
 class Settings(BaseSettings):
 	model_config = SettingsConfigDict(
@@ -34,6 +36,8 @@ class Settings(BaseSettings):
 		description="Kafka consumer offset reset policy.",
 	)
 
+	model_path: str = str(BASE_DIR / "artifacts" / "model.joblib")
+	metadata_path: str = str(BASE_DIR / "artifacts" / "metadata.json")
 	# Database
 	db_host: str = Field(default="localhost", description="PostgreSQL host.")
 	db_port: int = Field(default=5432, description="PostgreSQL port.")

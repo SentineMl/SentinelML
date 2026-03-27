@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from consumer import FeatureConsumer
 from producer import PredictionProducer
-from model import DummyModel
+from model import IsolationForestModel
 from config import settings
 
 from orm import create_session_factory, init_schema, save_prediction
@@ -14,7 +14,7 @@ def main() -> None:
     """
     consumer = FeatureConsumer()
     producer = PredictionProducer()
-    model = DummyModel()
+    model = IsolationForestModel()
     init_schema(settings.database_url)
     session_factory = create_session_factory(settings.database_url)
     db_session = session_factory()
