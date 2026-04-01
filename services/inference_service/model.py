@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Dict
 
-import joblib
+import mlflow
 import numpy as np
 
 from config import settings
@@ -16,15 +16,24 @@ class IsolationForestModel:
     """
 
     def __init__(self) -> None:
-        self.model = joblib.load(settings.model_path)
+        mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+        model_uri = (
+            f"models:/{settings.mlflow_registry_model_name}"
+            f"/{settings.mlflow_registry_model_version}"
+        )
 
-        with open(settings.metadata_path, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
+        # Pull and deserialize the model from MLflow Registry (simplest path).
+        self.model = mlflow.sklearn.load_model(model_uri)
+        metadata = self._load_fallback_metadata()
 
-        self.model_name = metadata["model_name"]
-        self.model_version = metadata["model_version"]
-        self.threshold = metadata.get("threshold", 0.5)
+        self.model_name = settings.mlflow_registry_model_name
+        self.model_version = f"v{settings.mlflow_registry_model_version}"
+        self.threshold = float(metadata.get("threshold", settings.default_threshold))
         self.feature_order = metadata["feature_order"]
+
+    def _load_fallback_metadata(self) -> Dict:
+        with open(settings.metadata_path, "r", encoding="utf-8") as f:
+            return json.load(f)
 
     def _prepare_features(self, features: Dict[str, float]) -> np.ndarray:
         row = [features.get(feature_name, 0.0) for feature_name in self.feature_order]
