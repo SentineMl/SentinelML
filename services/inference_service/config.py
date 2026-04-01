@@ -38,5 +38,19 @@ class Settings(BaseSettings):
 
 	model_path: str = str(BASE_DIR / "artifacts" / "model.joblib")
 	metadata_path: str = str(BASE_DIR / "artifacts" / "metadata.json")
+	# Database
+	db_host: str = Field(default="localhost", description="PostgreSQL host.")
+	db_port: int = Field(default=5432, description="PostgreSQL port.")
+	db_name: str = Field(default="sentinel", description="PostgreSQL database name.")
+	db_user: str = Field(default="sentinel_user", description="PostgreSQL user.")
+	db_password: str = Field(default="sentinel_pass", description="PostgreSQL password.")
+
+	@property
+	def database_url(self) -> str:
+		return (
+			f"postgresql+psycopg2://{self.db_user}:{self.db_password}"
+			f"@{self.db_host}:{self.db_port}/{self.db_name}"
+		)
+
 
 settings = Settings()

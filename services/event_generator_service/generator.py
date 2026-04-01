@@ -7,15 +7,21 @@ from datetime import datetime, timezone
 import time
 from typing import Iterator
 
+from orm import add_transaction, create_session_factory, init_schema
+
 class EventGenerator:
     def __init__(self, dataset_path:str) -> None:
         self.producer: Producer = None
+        self.db_session = None
         self.dataset_path = Path(dataset_path)
         self.df: pd.DataFrame = None
         self.offset_file = Path(settings.offset_file)
         self.current_offset = 0
         self._load_dataset()
         self._load_offset()
+        init_schema(settings.database_url)
+        self.session_factory = create_session_factory(settings.database_url)
+        self.db_session = self.session_factory()
 
     
     def _load_dataset(self):
@@ -90,6 +96,7 @@ class EventGenerator:
                 value=message,
             )
             self.producer.flush() #force sending the message immediately
+            add_transaction(self.db_session, event.features)
             print(f"✓ Sent event | Features: {len(event.features)}")
         
         
@@ -102,6 +109,8 @@ class EventGenerator:
         if self.producer:
             self.producer.flush()  
             print("Kafka producer closed")
+        if self.db_session:
+            self.db_session.close()
         # Save the final offset before closing
         self._save_offset()
         print(f"Saved offset: {self.current_offset}")

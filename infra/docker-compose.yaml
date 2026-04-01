@@ -108,6 +108,23 @@ services:
           echo "Topics now:"
           kafka-topics --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --list
     restart: "no"
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: sentinel
+      POSTGRES_USER: sentinel_user
+      POSTGRES_PASSWORD: sentinel_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - SentinelNetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel_user -d sentinel"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
   process_data:
     build:
       context: ../services/data_process_service
@@ -123,31 +140,49 @@ services:
       - SentinelNetwork
     restart: unless-stopped
   event_generator:
-    build: ../services/event_generator_service
+    build:
+      context: ..
+      dockerfile: services/event_generator_service/Dockerfile
     container_name: event_generator
     depends_on:
       kafka-init:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka1:9092,kafka2:9092,kafka3:9092"
       KAFKA_FEATURES_TOPIC: "raw_events"
       GENERATION_INTERVAL: "1.0"
       DATASET_PATH: "/app/data/transactions.csv"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "sentinel"
+      DB_USER: "sentinel_user"
+      DB_PASSWORD: "sentinel_pass"
     networks:
       - SentinelNetwork
     restart: unless-stopped
   inference_service:
-    build: ../services/inference_service
+    build:
+      context: ..
+      dockerfile: services/inference_service/dockerfile
     container_name: inference_service
     depends_on:
       kafka-init:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka1:9092,kafka2:9092,kafka3:9092"
       KAFKA_GROUP_ID: "inference-service"
       KAFKA_FEATURES_TOPIC: "features"
       KAFKA_PREDICTIONS_TOPIC: "predictions"
       KAFKA_AUTO_OFFSET_RESET: "earliest"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "sentinel"
+      DB_USER: "sentinel_user"
+      DB_PASSWORD: "sentinel_pass"
     networks:
       - SentinelNetwork
     restart: unless-stopped
@@ -155,6 +190,7 @@ volumes:
   kafka1_kraft:
   kafka2_kraft:
   kafka3_kraft:
+  postgres_data:
   event_generator_offset:
 networks:
   SentinelNetwork:
