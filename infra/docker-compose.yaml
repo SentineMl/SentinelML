@@ -115,6 +115,8 @@ services:
       POSTGRES_DB: sentinel
       POSTGRES_USER: sentinel_user
       POSTGRES_PASSWORD: sentinel_pass
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -183,8 +185,10 @@ services:
       DB_NAME: "sentinel"
       DB_USER: "sentinel_user"
       DB_PASSWORD: "sentinel_pass"
+      MLFLOW_TRACKING_URI: "http://mlflow-server:5000"
     networks:
       - SentinelNetwork
+      - sentinel-mlflow-network
     restart: unless-stopped
 volumes:
   kafka1_kraft:
@@ -195,3 +199,6 @@ volumes:
 networks:
   SentinelNetwork:
     driver: bridge
+  sentinel-mlflow-network:
+    external: true
+    name: sentinel-mlflow-network

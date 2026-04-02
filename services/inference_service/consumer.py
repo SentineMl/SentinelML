@@ -44,6 +44,15 @@ class FeatureConsumer:
 
             try:
                 value = json.loads(msg.value().decode("utf-8"))
+                # Backward-compatible normalization: accept both
+                # 1) {"timestamp": ..., "features": {...}} and
+                # 2) flat payloads where feature keys are top-level.
+                if not isinstance(value.get("features"), dict):
+                    value = {
+                        "timestamp": value.get("timestamp"),
+                        "features": value,
+                    }
+
                 event = FeaturesEvent(**value)
                 yield event
             except Exception as e:
