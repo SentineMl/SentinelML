@@ -11,7 +11,7 @@ pipeline {
             steps {
                 echo 'installing dependencies ...'
                 sh '''
-                python -m venv venv && \
+                python3 -m venv venv && \
                 source venv/bin/activate && \
                 pip install -r services/data_process_service/requirements.txt && \
                 pip install -r services/event_generator_service/requirements.txt && \
